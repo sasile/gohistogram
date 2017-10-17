@@ -5,6 +5,8 @@ package gohistogram
 
 import (
 	"fmt"
+	"strconv"
+	"sort"
 )
 
 type NumericHistogram struct {
@@ -157,4 +159,54 @@ func (h *NumericHistogram) String() (str string) {
 	}
 
 	return
+}
+
+type Pair struct {
+	Key float64
+	Value int
+}
+
+// A slice of Pairs that implements sort.Interface to sort by Value.
+type PairList []Pair
+func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p PairList) Len() int { return len(p) }
+func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+
+// A function to turn a map into a PairList, then sort and return it.
+func sortMapByValue(m map[float64]int) ([]string, []int ) {
+	labels := []string{}
+	values := []int{}
+	p := make(PairList, len(m))
+	i := 0
+	for k, v := range m {
+		p[i] = Pair{k, v}
+		i++
+	}
+	sort.Sort(sort.Reverse(p))
+	for _,i := range p{
+		labels = append(labels, strconv.FormatFloat(i.Key, 'f', -1, 64))
+		values = append(values, i.Value)
+	}
+	return  labels, values
+}
+
+// BarArray returns a label and values array reprentation of the histogram,
+// which is useful for ui bar chart.
+func (h *NumericHistogram) BarArray() ([]string, []int ) {
+	if h == nil || h.bins == nil{
+		return []string{}, []int{}
+	}
+	map_res := make(map[float64]int)
+	tmp_bin := make([]bin, len(h.bins)+10)
+	total:=h.total
+	copy(tmp_bin, h.bins)
+
+	for i := range tmp_bin {
+		var bar int
+		for j := 0; j < int(float64(tmp_bin[i].count) / float64(total) * 200); j++ {
+			bar ++
+		}
+		map_res[tmp_bin[i].value] = bar
+	}
+	return sortMapByValue(map_res)
 }
