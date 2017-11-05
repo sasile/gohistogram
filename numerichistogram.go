@@ -13,6 +13,7 @@ type NumericHistogram struct {
 	bins    []bin
 	maxbins int
 	total   uint64
+	ch_add  chan float64
 }
 
 // NewHistogram returns a new NumericHistogram with a maximum of n bins.
@@ -20,14 +21,26 @@ type NumericHistogram struct {
 // There is no "optimal" bin count, but somewhere between 20 and 80 bins
 // should be sufficient.
 func NewHistogram(n int) *NumericHistogram {
-	return &NumericHistogram{
+	hist:=  &NumericHistogram{
 		bins:    make([]bin, 0),
 		maxbins: n,
 		total:   0,
+		ch_add: make(chan float64, 10000),
 	}
+	go func() {
+		for n := range hist.ch_add{
+			hist.add(n)
+		}
+	}()
+	return hist
 }
 
+
 func (h *NumericHistogram) Add(n float64) {
+	h.ch_add <- n
+}
+
+func (h *NumericHistogram) add(n float64) {
 	defer h.trim()
 	h.total++
 	for i := range h.bins {
@@ -203,7 +216,7 @@ func (h *NumericHistogram) BarArray() ([]string, []int ) {
 
 	for i := range tmp_bin {
 		var bar int
-		for j := 0; j < int(float64(tmp_bin[i].count) / float64(total) * 200); j++ {
+		for j := 0; j < int(float64(tmp_bin[i].count) / float64(total) * 100); j++ {
 			bar ++
 		}
 		map_res[tmp_bin[i].value] = bar
