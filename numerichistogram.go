@@ -223,3 +223,18 @@ func (h *NumericHistogram) BarArray() ([]string, []int ) {
 	}
 	return sortMapByValue(map_res)
 }
+
+
+func (h *NumericHistogram) GetHistAsArray() ([]string, []float64 ) {
+	labels := []string{}
+	values := []float64{}
+
+	if h == nil || h.bins == nil{
+		return []string{}, []float64{}
+	}
+	for i := range h.bins {
+		labels = append(labels, strconv.FormatFloat(h.bins[i].value, 'f', -1, 64))
+		values = append(values, float64(h.bins[i].count)/float64(h.total)*100)
+	}
+	return  labels, values
+}
